@@ -1,8 +1,4 @@
-import akka.actor.ActorRef;
-import akka.actor.UntypedActor;
-import akka.actor.ActorSystem;
-import akka.actor.Props;
-import akka.actor.Inbox;
+import akka.actor.*;
 import scala.concurrent.duration.Duration;
 import scala.concurrent.duration.FiniteDuration;
 
@@ -28,19 +24,27 @@ public class HelloAkkaJava {
     // end #message_snippet
 
     // #actor_snippet
-    public static class Greeter extends UntypedActor {
+    public static class Greeter extends AbstractActor {
         String greeting = "";
 
-        public void onReceive(Object message) {
-            if (message instanceof WhoToGreet)
-                greeting = "hello, " + ((WhoToGreet) message).who;
-
-            else if (message instanceof Greet)
-                // Send the current greeting back to the sender
-                getSender().tell(new Greeting(greeting), getSelf());
-
-            else unhandled(message);
+        @Override
+        public Receive createReceive() {
+            return receiveBuilder()
+                    .match(WhoToGreet.class, this::onWhoToGreet)
+                    .match(Greet.class, this::onGreet)
+                    .build();
         }
+
+        private void onWhoToGreet(WhoToGreet whoToGreet) {
+            greeting = "hello, " + whoToGreet.who;
+        }
+
+        private void onGreet(Greet greet) {
+            // Send the current greeting back to the sender
+            getSender().tell(new Greeting(greeting), getSelf());
+        }
+
+
     }
     // end #actor_snippet
 
@@ -85,10 +89,14 @@ public class HelloAkkaJava {
         }
     }
 
-    public static class GreetPrinter extends UntypedActor {
-        public void onReceive(Object message) {
-            if (message instanceof Greeting)
-                System.out.println(((Greeting) message).message);
+    public static class GreetPrinter extends AbstractActor {
+
+        @Override
+        public Receive createReceive() {
+            return receiveBuilder()
+                    .match(Greeting.class, (greeting) -> System.out.println(greeting.message))
+                    .build();
         }
+
     }
 }

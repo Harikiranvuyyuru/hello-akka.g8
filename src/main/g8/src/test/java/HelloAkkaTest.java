@@ -1,6 +1,6 @@
-import scala.concurrent.duration.Duration;
+
 import akka.actor.*;
-import akka.testkit.JavaTestKit;
+import akka.testkit.javadsl.TestKit;
 import akka.testkit.TestActorRef;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -10,7 +10,7 @@ import org.junit.Test;
 
 public class HelloAkkaTest {
 
-    static ActorSystem system;
+    private static ActorSystem system;
 
     @BeforeClass
     public static void setup() {
@@ -19,14 +19,13 @@ public class HelloAkkaTest {
 
     @AfterClass
     public static void teardown() {
-        system.shutdown();
-        system.awaitTermination(Duration.create("10 seconds"));
+        TestKit.shutdownActorSystem(system);
     }
 
     // #test_snippet
     @Test
     public void testSetGreeter() {
-        new JavaTestKit(system) {{
+        new TestKit(system) {{
             final TestActorRef<HelloAkkaJava.Greeter> greeter =
                 TestActorRef.create(system, Props.create(HelloAkkaJava.Greeter.class), "greeter1");
 
@@ -38,7 +37,7 @@ public class HelloAkkaTest {
 
     @Test
     public void testGetGreeter() {
-        new JavaTestKit(system) {{
+        new TestKit(system) {{
 
             final ActorRef greeter = system.actorOf(Props.create(HelloAkkaJava.Greeter.class), "greeter2");
 
@@ -46,12 +45,8 @@ public class HelloAkkaTest {
             greeter.tell(new HelloAkkaJava.Greet(), getTestActor());
 
             final HelloAkkaJava.Greeting greeting = expectMsgClass(HelloAkkaJava.Greeting.class);
+            Assert.assertEquals("hello, testkit", greeting.message);
 
-            new Within(duration("10 seconds")) {
-                protected void run() {
-                    Assert.assertEquals("hello, testkit", greeting.message);
-                }
-            };
         }};
     }
     // end #test_snippet
